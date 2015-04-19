@@ -1,0 +1,59 @@
+--- lib/common.c.orig	Sun Apr 19 14:05:32 2015
++++ lib/common.c	Sun Apr 19 14:12:10 2015
+@@ -38,7 +38,9 @@ static pid_t mygettid(void)
+ }
+ #endif
+ 
++#ifndef __Bitrig__
+ #include <sys/prctl.h>
++#endif
+ #include <stdlib.h>
+ 
+ #define ALERT_LEVELS (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING)
+@@ -97,9 +99,13 @@ void custom_log_handler(const gchar *log_domain, GLogL
+ 
+ 	{
+ 		char name[20];
++#ifdef __Bitrig__
++		name[0] = 0;
++#else
+ 		int ret = prctl(PR_GET_NAME, (unsigned long) name);
+ 		if (ret < 0)
+ 			err("PR_GET_NAME, %m");
++#endif
+ 
+ 		g_string_append(gstring, name);
+ 	}
+@@ -108,7 +114,11 @@ void custom_log_handler(const gchar *log_domain, GLogL
+ 
+ 	{
+ 		pid_t pid = getpid();
++#ifdef __Bitrig__
++		pid_t tid = pid;
++#else
+ 		pid_t tid = syscall(SYS_gettid);
++#endif
+ 
+ 		if (pid == tid)
+ 			g_string_append_printf(gstring, "%d", pid);
+@@ -197,14 +207,20 @@ void custom_log_handler(const gchar *log_domain, GLogL
+ }
+ 
+ 
++#ifndef __Bitrig__
+ #include <sys/prctl.h>
++#endif
+ #include <string.h>
+ 
+ void set_process_name(const char *name)
+ {
+ 	char comm[16];
+ 	strncpy(comm, name, sizeof(comm));
++#ifdef __Bitrig__
++	setproctitle(comm);
++#else
+ 	int ret = prctl(PR_SET_NAME, (unsigned long) comm, 0l, 0l, 0l);
+ 	if (ret < 0)
+ 		warn("set_name %m");
++#endif
+ }

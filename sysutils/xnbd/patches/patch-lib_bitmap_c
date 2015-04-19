@@ -1,0 +1,33 @@
+--- lib/bitmap.c.orig	Sun Apr 19 14:03:30 2015
++++ lib/bitmap.c	Sun Apr 19 14:05:06 2015
+@@ -76,13 +76,17 @@ unsigned long *bitmap_open_file(const char *bitmapfile
+ 		struct stat st;
+ 		int ret = stat(bitmapfile, &st);
+ 		if (ret < 0) {
++#ifdef O_NOATIME
+ 			if (errno == ENOENT)
+ 				open_flag |= O_NOATIME;
+ 			else
++#endif
+ 				err("stat %s, %m", bitmapfile);
+ 		} else {
++#ifdef O_NOATIME
+ 			if (st.st_uid == geteuid())
+ 				open_flag |= O_NOATIME;
++#endif
+ 		}
+ 	}
+ 
+@@ -154,7 +158,11 @@ unsigned long *bitmap_create(char *bitmapfile, unsigne
+ 	size_t buflen = sizeof(unsigned long) * narrays;
+ 
+ 
+-	fd = open(bitmapfile, O_RDWR | O_CREAT | O_NOATIME, S_IRUSR | S_IWUSR);
++	fd = open(bitmapfile, O_RDWR | O_CREAT
++#ifdef O_NOATIME
++	    | O_NOATIME
++#endif
++	    , S_IRUSR | S_IWUSR);
+ 	if (fd < 0)
+ 		err("open bitmapfile");
+ 
